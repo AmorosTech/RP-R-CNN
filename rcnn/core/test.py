@@ -284,7 +284,7 @@ def filter_results(boxlist):
             (np.arange(boxlist.bbox.shape[0]) % num_classes != 0).astype(int)
         ).to(dtype=torch.uint8, device=device)
         _scores = scores > cfg.FAST_RCNN.SCORE_THRESH
-        inds_all = _scores & fg_labels
+        inds_all = _scores & fg_labels.bool()
         result = boxlist_ml_nms(boxlist[inds_all], cfg.FAST_RCNN.NMS)
     else:
         boxes = boxlist.bbox.reshape(-1, num_classes * 4)
