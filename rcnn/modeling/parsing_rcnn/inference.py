@@ -79,7 +79,7 @@ def expand_boxes(boxes, h, w):
 
     return boxes_exp
 
-def parsing_results(parsings, boxes, executor, semseg=None):
+def parsing_results(parsings, boxes, semseg=None):
     im_w, im_h = boxes.size
     parsings = parsings.transpose((0, 2, 3, 1))
     boxes = boxes.bbox.numpy()
@@ -96,62 +96,62 @@ def parsing_results(parsings, boxes, executor, semseg=None):
         semseg = np.zeros((im_h, im_w, N), dtype=np.float32)
 
     parsing_results = []
-    all_task = []
+    # all_task = []
     for i in range(boxes.shape[0]):
         padded_parsing[1:-1, 1:-1] = parsings[i]
         box = boxes[i, :]
-        # w = box[2] - box[0] + 1
-        # h = box[3] - box[1] + 1
-        # w = np.maximum(w, 1)
-        # h = np.maximum(h, 1)
-        # parsing = cv2.resize(padded_parsing, (w, h), interpolation=cv2.INTER_LINEAR)
-        # parsing_idx = np.argmax(parsing, axis=2)
-        # im_parsing = np.zeros((im_h, im_w), dtype=np.uint8)
-        # x_0 = max(box[0], 0)
-        # x_1 = min(box[2] + 1, im_w)
-        # y_0 = max(box[1], 0)
-        # y_1 = min(box[3] + 1, im_h)
+        w = box[2] - box[0] + 1
+        h = box[3] - box[1] + 1
+        w = np.maximum(w, 1)
+        h = np.maximum(h, 1)
+        parsing = cv2.resize(padded_parsing, (w, h), interpolation=cv2.INTER_LINEAR)
+        parsing_idx = np.argmax(parsing, axis=2)
+        im_parsing = np.zeros((im_h, im_w), dtype=np.uint8)
+        x_0 = max(box[0], 0)
+        x_1 = min(box[2] + 1, im_w)
+        y_0 = max(box[1], 0)
+        y_1 = min(box[3] + 1, im_h)
 
-        # mask = np.where(parsing_idx >= 1, 1, 0)
-        # mask = mask[:, :, np.newaxis].repeat(N, axis=2)
-        # cropped_semseg = semseg[y_0:y_1, x_0:x_1] * mask[(y_0 - box[1]):(y_1 - box[1]), (x_0 - box[0]):(x_1 - box[0])]
+        mask = np.where(parsing_idx >= 1, 1, 0)
+        mask = mask[:, :, np.newaxis].repeat(N, axis=2)
+        cropped_semseg = semseg[y_0:y_1, x_0:x_1] * mask[(y_0 - box[1]):(y_1 - box[1]), (x_0 - box[0]):(x_1 - box[0])]
 
-        # parsing[(y_0 - box[1]):(y_1 - box[1]), (x_0 - box[0]):(x_1 - box[0])] += \
-        #     cropped_semseg * cfg.PRCNN.SEMSEG_FUSE_WEIGHT
-        # parsing = np.argmax(parsing, axis=2)
+        parsing[(y_0 - box[1]):(y_1 - box[1]), (x_0 - box[0]):(x_1 - box[0])] += \
+            cropped_semseg * cfg.PRCNN.SEMSEG_FUSE_WEIGHT
+        parsing = np.argmax(parsing, axis=2)
 
-        # im_parsing[y_0:y_1, x_0:x_1] = parsing[(y_0 - box[1]):(y_1 - box[1]), (x_0 - box[0]):(x_1 - box[0])]
-        # parsing_results.append(im_parsing)
+        im_parsing[y_0:y_1, x_0:x_1] = parsing[(y_0 - box[1]):(y_1 - box[1]), (x_0 - box[0]):(x_1 - box[0])]
+        parsing_results.append(im_parsing)
 
-        all_task.append(executor.submit(do_parsing, padded_parsing, box, im_w, im_h, N, semseg))
+        # all_task.append(executor.submit(do_parsing, padded_parsing, box, im_w, im_h, N, semseg))
 
-    for future in as_completed(all_task):
-        parsing_results.append(future.result())
+    # for future in as_completed(all_task):
+    #     parsing_results.append(future.result())
     return parsing_results
 
-def do_parsing(padded_parsing, box, im_w, im_h, N, semseg):
-    w = box[2] - box[0] + 1
-    h = box[3] - box[1] + 1
-    w = np.maximum(w, 1)
-    h = np.maximum(h, 1)
-    parsing = cv2.resize(padded_parsing, (w, h), interpolation=cv2.INTER_LINEAR)
-    parsing_idx = np.argmax(parsing, axis=2)
-    im_parsing = np.zeros((im_h, im_w), dtype=np.uint8)
-    x_0 = max(box[0], 0)
-    x_1 = min(box[2] + 1, im_w)
-    y_0 = max(box[1], 0)
-    y_1 = min(box[3] + 1, im_h)
+# def do_parsing(padded_parsing, box, im_w, im_h, N, semseg):
+#     w = box[2] - box[0] + 1
+#     h = box[3] - box[1] + 1
+#     w = np.maximum(w, 1)
+#     h = np.maximum(h, 1)
+#     parsing = cv2.resize(padded_parsing, (w, h), interpolation=cv2.INTER_LINEAR)
+#     parsing_idx = np.argmax(parsing, axis=2)
+#     im_parsing = np.zeros((im_h, im_w), dtype=np.uint8)
+#     x_0 = max(box[0], 0)
+#     x_1 = min(box[2] + 1, im_w)
+#     y_0 = max(box[1], 0)
+#     y_1 = min(box[3] + 1, im_h)
 
-    mask = np.where(parsing_idx >= 1, 1, 0)
-    mask = mask[:, :, np.newaxis].repeat(N, axis=2)
-    cropped_semseg = semseg[y_0:y_1, x_0:x_1] * mask[(y_0 - box[1]):(y_1 - box[1]), (x_0 - box[0]):(x_1 - box[0])]
+#     mask = np.where(parsing_idx >= 1, 1, 0)
+#     mask = mask[:, :, np.newaxis].repeat(N, axis=2)
+#     cropped_semseg = semseg[y_0:y_1, x_0:x_1] * mask[(y_0 - box[1]):(y_1 - box[1]), (x_0 - box[0]):(x_1 - box[0])]
 
-    parsing[(y_0 - box[1]):(y_1 - box[1]), (x_0 - box[0]):(x_1 - box[0])] += \
-        cropped_semseg * cfg.PRCNN.SEMSEG_FUSE_WEIGHT
-    parsing = np.argmax(parsing, axis=2)
+#     parsing[(y_0 - box[1]):(y_1 - box[1]), (x_0 - box[0]):(x_1 - box[0])] += \
+#         cropped_semseg * cfg.PRCNN.SEMSEG_FUSE_WEIGHT
+#     parsing = np.argmax(parsing, axis=2)
 
-    im_parsing[y_0:y_1, x_0:x_1] = parsing[(y_0 - box[1]):(y_1 - box[1]), (x_0 - box[0]):(x_1 - box[0])]
-    return im_parsing
+#     im_parsing[y_0:y_1, x_0:x_1] = parsing[(y_0 - box[1]):(y_1 - box[1]), (x_0 - box[0]):(x_1 - box[0])]
+#     return im_parsing
 
 
 def parsing_post_processor():
